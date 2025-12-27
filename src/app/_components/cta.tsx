@@ -8,8 +8,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 
 function CTA() {
+  const { isSignedIn } = useAuth();
+
   return (
     <section className="py-20 md:py-32">
       <div className="container mx-auto">
@@ -32,13 +36,17 @@ function CTA() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" className="group">
-                Start Free Trial
-                <ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button size="lg" variant="outline">
-                Schedule Demo
-              </Button>
+              <Link href={isSignedIn ? "/dashboard" : "/sign-in"}>
+                <Button size="lg" className="group">
+                  Start Free Trial
+                  <ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+              <Link href={isSignedIn ? "/dashboard" : "/sign-in"}>
+                <Button size="lg" variant="outline">
+                  Schedule Demo
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </motion.div>

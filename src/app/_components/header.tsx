@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 import { MenuIcon, WalletIcon, XIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -6,6 +7,9 @@ import { useState } from "react";
 
 function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { isSignedIn } = useAuth();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <nav className="container mx-auto flex h-16 items-center justify-between">
@@ -55,7 +59,9 @@ function Header() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="hidden md:block"
         >
-          <Button>Get Started</Button>
+          <Link href={isSignedIn ? "/dashboard" : "/sign-in"}>
+            <Button>Get Started</Button>
+          </Link>
         </motion.div>
 
         {/* Mobile Menu Button */}

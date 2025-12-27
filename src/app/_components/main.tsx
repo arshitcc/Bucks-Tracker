@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 import { ArrowRightIcon, SparklesIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
 
 function MainSection() {
+  const { isSignedIn } = useAuth();
+
   return (
     <section className="container mx-auto py-20 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
@@ -44,13 +48,17 @@ function MainSection() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
-          <Button size="lg" className="group">
-            Start Free Trial
-            <ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Button>
-          <Button size="lg" variant="outline">
-            View Demo
-          </Button>
+          <Link href={isSignedIn ? "/dashboard" : "/sign-in"}>
+            <Button size="lg" className="group">
+              Start Free Trial
+              <ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </Link>
+          <Link href={isSignedIn ? "/dashboard" : "/sign-in"}>
+            <Button size="lg" variant="outline">
+              View Demo
+            </Button>
+          </Link>
         </motion.div>
 
         <motion.div

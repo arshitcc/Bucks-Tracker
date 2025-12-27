@@ -24,7 +24,7 @@ function Footer() {
             </p>
           </div>
 
-          <div>
+          {/* <div>
             <h3 className="mb-4 font-semibold">Product</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
@@ -100,10 +100,10 @@ function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
+        {/* <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
           <p className="text-sm text-muted-foreground">
             © 2025 Bucks Tracker. All rights reserved.
           </p>
@@ -130,7 +130,7 @@ function Footer() {
               <span className="sr-only">LinkedIn</span>
             </Link>
           </div>
-        </div>
+        </div> */}
       </div>
     </footer>
   );
