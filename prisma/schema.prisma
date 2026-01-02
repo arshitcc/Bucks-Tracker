@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanType {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum RecurringInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentProvider {
+  STRIPE
+  RAZORPAY
+  ZAAKPAY
+  UNKNOWN
+}
+
+enum PaymentMethod {
+  DEBIT_CARD
+  UPI
+  CREDIT_CARD
+  CASH
+  NET_BANKING
+}
+
+enum ExpenseGroup {
+  FOOD_AND_DRINKS
+  SHOPPING
+  HOUSING
+  TRANSPORTATION
+  VEHICLE
+  ENTERTAINMENT
+  INVESTMENTS
+  INCOME
+  LIFE_AND_ENTERTAINMENT
+  HEALTH
+  EDUCATION
+  PERSONAL
+  MISCELLANEOUS
+  OTHER
+}
+
+enum ExpenseCategory {
+  Bar
+  Cafe
+  Groceries
+  Restaurant
+  Fast_Food
+
+  Clothes
+  Shoes
+  Electronics
+  Gifts
+  Stationary
+  Tools
+  Books
+
+  Rent
+  Energy
+  Utilities
+  Maintainance
+
+  Business_Trips
+  Public_Transport
+  Taxi
+
+  Fuel
+  Leasing
+  Rental
+  Vehicle_Insurance
+  Vehicle_Maintenance
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PAUSED
+}
+
+enum WalletType {
+  DEFAULT
+  CUSTOM
+}
+
+model User {
+  id            String         @id @default(uuid())
+  clerkUserID   String         @unique
+  email         String         @unique
+  name          String
+  password      String?
+  avatar        String?
+  wallets       Wallet[]
+  subscriptions Subscription[]
+  Budgets       Budget[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Wallet {
+  id           String        @id @default(uuid())
+  userID       String
+  user         User          @relation(fields: [userID], references: [id])
+  name         String
+  type         WalletType
+  balance      Float
+  transcations Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id                String             @id @default(uuid())
+  walletID          String
+  wallet            Wallet             @relation(fields: [walletID], references: [id])
+  type              TransactionType
+  group             ExpenseGroup
+  category          ExpenseCategory
+  reciepts          String[]           @default([])
+  description       String?
+  amount            Float
+  isRecurring       Boolean            @default(false)
+  recurringInterval RecurringInterval?
+  nextRecurringAt   DateTime?
+  lastProcessedAt   DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Budget {
+  id        String          @id @default(uuid())
+  userID    String
+  user      User            @relation(fields: [userID], references: [id])
+  group     ExpenseGroup
+  category  ExpenseCategory
+  amount    Float
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model Goal {
+  id            String     @id @default(uuid())
+  name          String
+  targetAmount  Float
+  currentAmount Float
+  status        GoalStatus @default(IN_PROGRESS)
+  deadline      DateTime
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userID    String
+  user      User     @relation(fields: [userID], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id             String          @id @default(uuid())
+  provider       PaymentProvider
+  method         PaymentMethod
+  txnDetails     Json
+  subscriptionID String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
