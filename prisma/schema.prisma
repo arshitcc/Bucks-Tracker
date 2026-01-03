@@ -112,6 +112,11 @@ enum WalletType {
   CUSTOM
 }
 
+enum GoalTransactionType {
+  DEPOSIT
+  WITHDRAW
+}
+
 model User {
   id            String         @id @default(uuid())
   clerkUserID   String         @unique
@@ -121,33 +126,39 @@ model User {
   avatar        String?
   wallets       Wallet[]
   subscriptions Subscription[]
-  Budgets       Budget[]
+  plan          PlanType?      @default(FREE)
+  transactions  Transaction[]
+  budgets       Budget[]
+  goals         Goal[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
 
 model Wallet {
-  id           String        @id @default(uuid())
-  userID       String
-  user         User          @relation(fields: [userID], references: [id])
-  name         String
-  type         WalletType
-  balance      Float
-  transcations Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                String            @id @default(uuid())
+  userID            String
+  user              User              @relation(fields: [userID], references: [id])
+  name              String
+  type              WalletType
+  balance           Float             @default(0.0)
+  transcations      Transaction[]
+  goal_transactions GoalTransaction[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model Transaction {
   id                String             @id @default(uuid())
   walletID          String
   wallet            Wallet             @relation(fields: [walletID], references: [id])
+  userID            String
+  user              User               @relation(fields: [userID], references: [id])
   type              TransactionType
   group             ExpenseGroup
   category          ExpenseCategory
-  reciepts          String[]           @default([])
+  receipts          String[]           @default([])
   description       String?
-  amount            Float
+  amount            Float              @default(0.0)
   isRecurring       Boolean            @default(false)
   recurringInterval RecurringInterval?
   nextRecurringAt   DateTime?
@@ -162,20 +173,36 @@ model Budget {
   user      User            @relation(fields: [userID], references: [id])
   group     ExpenseGroup
   category  ExpenseCategory
-  amount    Float
+  limit     Float           @default(0.0)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }
 
 model Goal {
-  id            String     @id @default(uuid())
-  name          String
-  targetAmount  Float
-  currentAmount Float
-  status        GoalStatus @default(IN_PROGRESS)
-  deadline      DateTime
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                String            @id @default(uuid())
+  userID            String
+  user              User              @relation(fields: [userID], references: [id])
+  name              String
+  targetAmount      Float
+  currentAmount     Float             @default(0.0)
+  status            GoalStatus        @default(IN_PROGRESS)
+  goal_transactions GoalTransaction[]
+  completedAt       DateTime?
+  deadline          DateTime
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model GoalTransaction {
+  id        String              @id @default(uuid())
+  type      GoalTransactionType
+  goalID    String
+  goal      Goal                @relation(fields: [goalID], references: [id])
+  walletID  String
+  wallet    Wallet              @relation(fields: [walletID], references: [id])
+  amount    Float
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
 }
 
 model Subscription {
