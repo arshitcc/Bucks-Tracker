@@ -2,8 +2,53 @@
 
 import { WalletType } from "@/generated/prisma/enums";
 import { db } from "@/lib/prisma";
+import { Wallet } from "@/types";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+
+export async function createDefaultWallets(userID: string): Promise<{
+  success: boolean;
+  wallets?: any;
+  error?: string;
+}> {
+  try {
+    // const user = await db.user.findUnique({
+    //   where: { clerkUserID: clerkUserId },
+    // });
+
+    // if (!user) {
+    //   return { error: "Account not found" };
+    // }
+
+    const wallets = await db.wallet.createMany({
+      data: [
+        {
+          userID,
+          name: "Default Wallet",
+          type: WalletType.DEFAULT,
+          balance: 0,
+        },
+        {
+          userID,
+          name: "Savings Wallet",
+          type: WalletType.DEFAULT,
+          balance: 0,
+        },
+        {
+          userID,
+          name: "Emergency Wallet",
+          type: WalletType.DEFAULT,
+          balance: 0,
+        },
+      ],
+    });
+
+    return { success: true, wallets };
+  } catch (error) {
+    console.error("Error creating wallet:", error);
+    return { success: false, error: "Failed to create wallet" };
+  }
+}
 
 export async function createWallet(data: { name: string; balance: number }) {
   try {
@@ -38,7 +83,7 @@ export async function createWallet(data: { name: string; balance: number }) {
     revalidatePath("/dashboard/wallets");
     return { success: true, wallet: newWallet };
   } catch (error) {
-    console.error("[v0] Error creating wallet:", error);
+    console.error("Error creating wallet:", error);
     return { error: "Failed to create wallet" };
   }
 }

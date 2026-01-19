@@ -30,6 +30,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
       isLoading: false,
     });
   },
+
   addWallet: async (w) => {
     set({ isUpdating: true });
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -41,6 +42,7 @@ export const useWalletStore = create<WalletStore>((set) => ({
       isUpdating: false,
     }));
   },
+
   deleteWallet: async (id) => {
     set({ isUpdating: true });
     await new Promise((resolve) => setTimeout(resolve, 500));

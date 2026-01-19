@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { createDefaultWallets } from "./wallets";
 
 export async function updateUserPassword(newPassword: string) {
   try {
@@ -36,7 +37,7 @@ export async function updateUserPassword(newPassword: string) {
       signOutOfOtherSessions: true,
     });
 
-    revalidatePath("/");
+    revalidatePath("/dashboard/settings");
 
     return {
       success: true,
@@ -53,13 +54,56 @@ export async function updateUserPassword(newPassword: string) {
   }
 }
 
-/**
+export async function createNewUserAccount(clerkUserID: string) {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(clerkUserID);
+    console.log(user);
+
+    if (!user || !user.id) {
+      return {
+        success: false,
+        error: "User not found in Clerk",
+      };
+    }
+
+    const email = user.emailAddresses.find(
+      (e) => e.id === user.primaryEmailAddressId
+    )?.emailAddress;
+
+    const newUser = await db.user.create({
+      data: {
+        clerkUserID: user.id,
+        email: email ?? "",
+        name: user.fullName || "",
+      },
+    });
+
+    const res = await createDefaultWallets(newUser.id);
+
+    let wallets = [];
+    if (res.success) {
+      wallets = res.wallets;
+    }
+    return {
+      success: true,
+      user: { ...newUser, wallets },
+    };
+  } catch (err: any) {
+    const clerkError = err.errors?.[0];
+    return {
+      success: false,
+      error: clerkError?.message || "An error occurred during sign up",
+    };
+  }
+}
+
+/*
  * Delete user account completely
  * Removes user from Clerk and deletes all associated data from database
  */
 export async function deleteUserAccount() {
   try {
-
     const { isAuthenticated, userId } = await auth();
 
     if (!isAuthenticated) {

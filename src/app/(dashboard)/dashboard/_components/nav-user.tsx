@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 import { SignOutButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export function NavUser({
   user,
@@ -81,24 +82,24 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <SparklesIcon />
-                Upgrade to Pro
-              </DropdownMenuItem>
+              <Link href="/upgrade">
+                <DropdownMenuItem>
+                  <SparklesIcon />
+                  Upgrade to Pro
+                </DropdownMenuItem>
+              </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheckIcon />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
+              <Link href={"/dashboard/settings"}>
+                <DropdownMenuItem>
+                  <BadgeCheckIcon />
+                  Account
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem>
                 <BellIcon />
-                Notifications
+                Reports
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

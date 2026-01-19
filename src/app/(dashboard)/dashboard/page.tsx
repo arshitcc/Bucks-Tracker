@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { isLoaded, user } = useUser();
@@ -56,29 +57,29 @@ export default function DashboardPage() {
           </SignOutButton>
         </header>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 items-center grid-cols-2 xl:grid-cols-4">
           <DashboardCard
             title="Total Balance"
             value="$12,450.00"
-            icon={<WalletIcon className="h-5 w-5" />}
+            icon={<WalletIcon className="size-5" />}
             description="+2.5% from last month"
           />
           <DashboardCard
             title="Active Goals"
             value="4 / 10"
-            icon={<TargetIcon className="h-5 w-5" />}
+            icon={<TargetIcon className="size-5" />}
             description="2 goals near completion"
           />
           <DashboardCard
             title="Monthly Spending"
             value="$3,240.50"
-            icon={<PieChartIcon className="h-5 w-5" />}
+            icon={<PieChartIcon className="size-5" />}
             description="15% below budget"
           />
           <DashboardCard
             title="AI Insights"
             value="3 New"
-            icon={<LayoutDashboardIcon className="h-5 w-5" />}
+            icon={<LayoutDashboardIcon className="size-5" />}
             description="Optimizations available"
           />
         </div>
@@ -92,7 +93,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="flex h-75 items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
-              Transaction list placeholder
+              No Transactions Found
             </div>
           </CardContent>
         </Card>
@@ -106,25 +107,27 @@ function DashboardCard({
   value,
   icon,
   description,
+  className,
 }: {
   title: string;
   value: string;
   icon: React.ReactNode;
   description: string;
+  className?: string;
 }) {
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <div className="text-muted-foreground">{icon}</div>
+      <Card className="h-40 justify-between">
+        <CardHeader className="flex flex-row items-center justify-between px-3">
+          <CardTitle className="text-xs md:text-sm font-medium">{title}</CardTitle>
+          <div className="hidden sm:flex text-muted-foreground">{icon}</div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{value}</div>
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <CardContent className="px-3">
+          <div className="text-lg md:text-2xl font-bold">{value}</div>
+          <p className="text-xs text-muted-foreground mt-1 truncate">{description}</p>
         </CardContent>
       </Card>
     </motion.div>

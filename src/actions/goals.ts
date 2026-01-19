@@ -8,12 +8,9 @@ import {
   WalletType,
 } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { ContributeToGoalForm, NewGoalForm } from "@/schemas/goals";
 
-export async function createGoal(data: {
-  name: string;
-  targetAmount: number;
-  deadline: Date;
-}) {
+export async function createGoal(data: NewGoalForm) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Unauthorized" };
@@ -27,7 +24,7 @@ export async function createGoal(data: {
       data: {
         userID: user.id,
         name: data.name,
-        targetAmount: data.targetAmount,
+        targetAmount: Number(data.targetAmount),
         deadline: data.deadline,
       },
     });
@@ -40,11 +37,7 @@ export async function createGoal(data: {
   }
 }
 
-export async function contributeToGoal(data: {
-  goalID: string;
-  walletID: string;
-  amount: number;
-}) {
+export async function contributeToGoal(data: ContributeToGoalForm) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Unauthorized" };
@@ -54,11 +47,13 @@ export async function contributeToGoal(data: {
     });
     if (!user) return { error: "Account not found" };
 
+    const txnAmount = Number(data.amount) || 0;
+
     const result = await db.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
         where: { id: data.walletID, userID: user.id },
       });
-      if (!wallet || wallet.balance < data.amount)
+      if (!wallet || wallet.balance < txnAmount)
         throw new Error("Insufficient funds in wallet");
 
       const goal = await tx.goal.findUnique({
@@ -71,16 +66,16 @@ export async function contributeToGoal(data: {
           goalID: data.goalID,
           walletID: data.walletID,
           type: GoalTransactionType.DEPOSIT,
-          amount: data.amount,
+          amount: txnAmount,
         },
       });
 
       const updatedGoal = await tx.goal.update({
         where: { id: data.goalID },
         data: {
-          currentAmount: { increment: data.amount },
+          currentAmount: { increment: txnAmount },
           status:
-            goal.currentAmount + data.amount >= goal.targetAmount
+            goal.currentAmount + txnAmount >= goal.targetAmount
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,
         },
@@ -88,7 +83,7 @@ export async function contributeToGoal(data: {
 
       await tx.wallet.update({
         where: { id: data.walletID },
-        data: { balance: { decrement: data.amount } },
+        data: { balance: { decrement: txnAmount } },
       });
 
       return { goalTransaction, updatedGoal };
@@ -161,10 +156,7 @@ export async function withdrawFromGoal(data: {
   }
 }
 
-export async function updateGoal(
-  id: string,
-  data: { name?: string; targetAmount?: number; deadline?: Date }
-) {
+export async function updateExistingGoal(id: string, data: NewGoalForm) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Unauthorized" };
@@ -180,11 +172,13 @@ export async function updateGoal(
     const result = await db.$transaction(async (tx) => {
       let excessTransfer = null;
 
+      const targetAmount = Number(data.targetAmount) || 0;
+
       if (
         data.targetAmount !== undefined &&
-        data.targetAmount < goal.currentAmount
+        targetAmount < goal.currentAmount
       ) {
-        const excessAmount = goal.currentAmount - data.targetAmount;
+        const excessAmount = goal.currentAmount - targetAmount;
 
         const defaultWallet = await tx.wallet.findFirst({
           where: { userID: user.id, type: WalletType.DEFAULT },
@@ -214,16 +208,15 @@ export async function updateGoal(
         where: { id },
         data: {
           ...data,
+          targetAmount: targetAmount,
           currentAmount:
-            data.targetAmount !== undefined &&
-            data.targetAmount < goal.currentAmount
-              ? data.targetAmount
+            targetAmount !== undefined && targetAmount < goal.currentAmount
+              ? targetAmount
               : undefined,
           status:
-            (data.targetAmount ?? goal.targetAmount) <=
-            (data.targetAmount !== undefined &&
-            data.targetAmount < goal.currentAmount
-              ? data.targetAmount
+            (targetAmount ?? goal.targetAmount) <=
+            (targetAmount !== undefined && targetAmount < goal.currentAmount
+              ? targetAmount
               : goal.currentAmount)
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,

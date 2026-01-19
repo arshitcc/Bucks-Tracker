@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, stagger } from "motion/react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import {
   Trash2Icon,
   ArrowUpRightIcon,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function WalletsPage() {
   const { wallets, isLoading, fetchWallets, deleteWallet } = useWalletStore();
@@ -51,16 +53,22 @@ export default function WalletsPage() {
                 : defaultWallets.map((wallet) => (
                     <motion.div
                       key={wallet.id}
-                      layout
+                      // layout
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
+                      transition={{ ease: "easeInOut" }}
                     >
                       <Card className="overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/5 to-transparent shadow-md transition-shadow hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                           <CardTitle className="text-lg font-medium">
                             {wallet.name}
                           </CardTitle>
-                          <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex gap-x-3">
+                            {wallet.balance < 1000 && (
+                              <Badge variant={"destructive"}>Low</Badge>
+                            )}
+                            <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">
@@ -79,7 +87,7 @@ export default function WalletsPage() {
 
         <TabsContent value="my-wallets" className="mt-6">
           <div className="grid gap-6 md:grid-cols-3">
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence>
               {isLoading ? (
                 Array(3)
                   .fill(0)
@@ -88,18 +96,26 @@ export default function WalletsPage() {
                 customWallets.map((wallet) => (
                   <motion.div
                     key={wallet.id}
-                    layout
+                    // layout
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.02 }}
                     className="group relative"
                   >
-                    <Card className="overflow-hidden border-2 border-primary/40 bg-card shadow-xl">
+                    <Card
+                      className={cn(
+                        "overflow-hidden border-2 border-primary/40 bg-card shadow-xl",
+                        wallet.balance < 1000 && "border-red-800 bg-red-800 text-black"
+                      )}
+                    >
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-lg font-medium">
                           {wallet.name}
                         </CardTitle>
-                        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          {wallet.balance < 1000 && (
+                            <Badge variant={"destructive"}>Low</Badge>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon-sm"
@@ -108,6 +124,7 @@ export default function WalletsPage() {
                           >
                             <Trash2Icon className="h-4 w-4" />
                           </Button>
+                          <WalletIcon className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </CardHeader>
                       <CardContent>

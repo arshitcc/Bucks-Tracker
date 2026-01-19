@@ -34,6 +34,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { createNewUserAccount } from "@/actions/account";
 
 function SignupPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -73,11 +74,12 @@ function SignupPage() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: any) {
+      console.log(err.errors);
       const clerkError = err.errors?.[0];
 
       // account already exists → redirect to sign-in
       if (clerkError?.code === "form_identifier_exists") {
-        router.push("/sign-in");
+        setError(clerkError?.message || "An error occurred during sign up");
         return;
       }
       setError(clerkError?.message || "An error occurred during sign up");
@@ -92,16 +94,33 @@ function SignupPage() {
         code: values.code,
       });
 
+      console.log(signup);
+
       if (signup.status !== "complete") {
         setError("Invalid verification code");
       }
 
       if (signup.status === "complete") {
+        await createNewUserAccount(signup.createdUserId!);
         await setActive({ session: signup.createdSessionId });
         router.push("/dashboard");
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "An error occurred during sign up");
+      console.log(err.errors);
+      const clerkError = err.errors?.[0];
+      verificationForm.reset({
+        code: "",
+      });
+
+      if (clerkError.code === "form_code_incorrect") {
+        setError("Incorrect OTP");
+        return;
+      }
+      if(clerkError.code === "verification_failed"){
+        setError("Too many failed attempts");
+        return
+      }
+      setError(err.errors?.[0]?.longMessage || "An error occurred during sign up");
     }
   };
 
@@ -210,7 +229,7 @@ function SignupPage() {
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                       Or continue with
                     </span>
                   </div>

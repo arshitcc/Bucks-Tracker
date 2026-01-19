@@ -60,6 +60,11 @@ import { useGoalStore } from "@/store/goals";
 import { useWalletStore } from "@/store/wallets";
 import { Goal } from "@/types";
 import GoalsCardSkeleton from "./_components/goals-skeleton";
+import {
+  contributeToGoal,
+  createGoal,
+  updateExistingGoal,
+} from "@/actions/goals";
 
 export default function GoalsPage() {
   const {
@@ -70,7 +75,7 @@ export default function GoalsPage() {
     updateGoal,
     deleteGoal,
   } = useGoalStore();
-  
+
   const { wallets, isLoading: walletsLoading, fetchWallets } = useWalletStore();
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
   const [isContributeDialogOpen, setIsContributeDialogOpen] = useState(false);
@@ -108,14 +113,16 @@ export default function GoalsPage() {
     },
   });
 
-  const onGoalSubmit = (data: NewGoalForm) => {
+  const onNewGoalSubmit = async (data: NewGoalForm) => {
     if (editingGoal) {
+      await updateExistingGoal(editingGoal.id, data);
       updateGoal(editingGoal.id, {
         name: data.name,
         deadline: format(data.deadline, "yyyy-MM-dd"),
         targetAmount: Number(data.targetAmount),
       });
     } else {
+      await createGoal(data);
       addGoal({
         name: data.name,
         deadline: format(data.deadline, "yyyy-MM-dd"),
@@ -127,9 +134,10 @@ export default function GoalsPage() {
     goalForm.reset();
   };
 
-  const onContributeSubmit = (data: ContributeToGoalForm) => {
+  const onContributeSubmit = async (data: ContributeToGoalForm) => {
     const goal = goals.find((g) => g.id === data.goalID);
     if (goal) {
+      await contributeToGoal(data);
       updateGoal(goal.id, {
         currentSaved: goal.currentSaved + Number(data.amount),
       });
@@ -203,7 +211,7 @@ export default function GoalsPage() {
               </DialogHeader>
               <Form {...goalForm}>
                 <form
-                  onSubmit={goalForm.handleSubmit(onGoalSubmit)}
+                  onSubmit={goalForm.handleSubmit(onNewGoalSubmit)}
                   className="space-y-4"
                 >
                   <FormField
@@ -251,7 +259,7 @@ export default function GoalsPage() {
                               selected={field.value}
                               onSelect={field.onChange}
                               disabled={(date) => date < new Date()}
-                              initialFocus
+                              autoFocus
                             />
                           </PopoverContent>
                         </Popover>
