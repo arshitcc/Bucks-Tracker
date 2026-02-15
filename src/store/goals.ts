@@ -1,14 +1,26 @@
 import { type Goal } from "@/types";
 import { create } from "zustand";
 import { BaseState } from "./transactions";
+import {
+  contributeToGoal,
+  createGoal,
+  getGoals,
+  updateExistingGoal,
+  withdrawFromGoal,
+} from "@/actions/goals";
+import {
+  ContributeToGoalForm,
+  NewGoalForm,
+  WithdrawFromGoalForm,
+} from "@/schemas/goals";
 
 interface GoalStore extends BaseState {
   goals: Goal[];
   fetchGoals: () => Promise<void>;
-  addGoal: (
-    g: Omit<Goal, "id" | "currentSaved" | "completed">
-  ) => Promise<void>;
-  updateGoal: (id: string, g: Partial<Goal>) => Promise<void>;
+  addGoal: (g: NewGoalForm) => Promise<void>;
+  updateGoal: (id: string, g: NewGoalForm) => Promise<void>;
+  contributeToGoal: (id: string, g: ContributeToGoalForm) => Promise<void>;
+  withdrawFromGoal: (id: string, g: WithdrawFromGoalForm) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
 }
 
@@ -18,62 +30,71 @@ export const useGoalStore = create<GoalStore>((set) => ({
   isUpdating: false,
   id: null,
   error: null,
-  
+
   fetchGoals: async () => {
-    set({ isLoading: true });
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    set({
-      goals: [
-        {
-          id: "1",
-          name: "Emergency Fund",
-          deadline: "2024-12-31",
-          currentSaved: 5000,
-          targetAmount: 5000,
-          completed: true,
-        },
-        {
-          id: "2",
-          name: "Vacation to Japan",
-          deadline: "2025-06-30",
-          currentSaved: 1200,
-          targetAmount: 4000,
-          completed: false,
-        },
-        {
-          id: "3",
-          name: "New Laptop",
-          deadline: "2024-09-15",
-          currentSaved: 800,
-          targetAmount: 1500,
-          completed: false,
-        },
-      ],
-      isLoading: false,
-    });
+    try {
+      set({ isLoading: true });
+      // await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await getGoals();
+      if (res.success) {
+        set({
+          goals: res.data as Goal[],
+          isLoading: false,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      set({ isLoading: false });
+    }
   },
   addGoal: async (g) => {
-    set({ isUpdating: true });
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    set((state) => ({
-      goals: [
-        ...state.goals,
-        {
-          ...g,
-          id: Math.random().toString(36).substr(2, 9),
-          currentSaved: 0,
-          completed: false,
-        },
-      ],
-      isUpdating: false,
-    }));
+    try {
+      // await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await createGoal(g);
+      if (res.success) {
+        set((state) => ({
+          goals: [...state.goals, res.data],
+        }));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   },
-  updateGoal: async (id, g) => {
+  updateGoal: async (id, goal) => {
+    try {
+      set({ isUpdating: true, id: id });
+      // await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await updateExistingGoal(id, goal);
+      if (res.success && res.data?.updatedGoal) {
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === id ? res.data?.updatedGoal : g,
+          ),
+          isUpdating: false,
+          id: null,
+        }));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  contributeToGoal: async (id, g) => {
     set({ isUpdating: true });
     await new Promise((resolve) => setTimeout(resolve, 500));
     set((state) => ({
       goals: state.goals.map((item) =>
-        item.id === id ? { ...item, ...g } : item
+        item.id === id ? { ...item, ...g } : item,
+      ),
+      isUpdating: false,
+    }));
+  },
+  withdrawFromGoal: async (id, g) => {
+    set({ isUpdating: true });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    set((state) => ({
+      goals: state.goals.map((item) =>
+        item.id === id ? { ...item, ...g } : item,
       ),
       isUpdating: false,
     }));

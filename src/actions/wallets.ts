@@ -2,13 +2,12 @@
 
 import { WalletType } from "@/generated/prisma/enums";
 import { db } from "@/lib/prisma";
-import { Wallet } from "@/types";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 export async function createDefaultWallets(userID: string): Promise<{
   success: boolean;
-  wallets?: any;
+  data?: any;
   error?: string;
 }> {
   try {
@@ -19,6 +18,17 @@ export async function createDefaultWallets(userID: string): Promise<{
     // if (!user) {
     //   return { error: "Account not found" };
     // }
+
+    const existingWallets = await db.wallet.findFirst({
+      where: {
+        userID,
+        type: WalletType.DEFAULT,
+      },
+    });
+
+    if (existingWallets) {
+      return { success: true, error: "Default wallets already exist" };
+    }
 
     const wallets = await db.wallet.createMany({
       data: [
@@ -41,21 +51,65 @@ export async function createDefaultWallets(userID: string): Promise<{
           balance: 0,
         },
       ],
+      skipDuplicates: true,
     });
 
-    return { success: true, wallets };
+    return { success: true, data: wallets };
   } catch (error) {
     console.error("Error creating wallet:", error);
     return { success: false, error: "Failed to create wallet" };
   }
 }
 
+export async function getAllWallets() {
+  const { isAuthenticated, userId } = await auth();
+
+  if (!isAuthenticated || !userId) {
+    return {
+      success: false,
+      error: "Session expired. Please login again",
+    };
+  }
+
+  const user = await db.user.findUnique({
+    where: { clerkUserID: userId },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      error: "Account not found",
+    };
+  }
+
+  const wallets = await db.wallet.findMany({
+    where: { userID: user.id },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const groupedWallets = wallets.reduce(
+    (acc, wallet) => {
+      acc[wallet.type].push(wallet);
+      return acc;
+    },
+    {
+      DEFAULT: [] as typeof wallets,
+      CUSTOM: [] as typeof wallets,
+    },
+  );
+
+  return {
+    success: true,
+    data: groupedWallets,
+  };
+}
+
 export async function createWallet(data: { name: string; balance: number }) {
   try {
-    const { userId } = await auth();
+    const { isAuthenticated, userId } = await auth();
 
-    if (!userId) {
-      return { error: "Unauthorized" };
+    if (!isAuthenticated || !userId) {
+      return { error: "Session expired. Please login again" };
     }
 
     if (data.balance < 0) {

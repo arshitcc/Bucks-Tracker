@@ -23,6 +23,14 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   TRIALING
+  PENDING
+}
+
+enum Currency {
+  INR
+  USD
+  EUR
+  AED
 }
 
 enum TransactionType {
@@ -132,12 +140,13 @@ model User {
   goals         Goal[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
 }
 
 model Wallet {
   id                String            @id @default(uuid())
   userID            String
-  user              User              @relation(fields: [userID], references: [id])
+  user              User              @relation(fields: [userID], references: [id], onDelete: Cascade)
   name              String
   type              WalletType
   balance           Float             @default(0.0)
@@ -150,9 +159,9 @@ model Wallet {
 model Transaction {
   id                String             @id @default(uuid())
   walletID          String
-  wallet            Wallet             @relation(fields: [walletID], references: [id])
+  wallet            Wallet             @relation(fields: [walletID], references: [id], onDelete: Cascade)
   userID            String
-  user              User               @relation(fields: [userID], references: [id])
+  user              User               @relation(fields: [userID], references: [id], onDelete: Cascade)
   type              TransactionType
   group             ExpenseGroup
   category          ExpenseCategory
@@ -181,10 +190,10 @@ model Budget {
 model Goal {
   id                String            @id @default(uuid())
   userID            String
-  user              User              @relation(fields: [userID], references: [id])
+  user              User              @relation(fields: [userID], references: [id], onDelete: Cascade)
   name              String
   targetAmount      Float
-  currentAmount     Float             @default(0.0)
+  savedAmount       Float             @default(0.0)
   status            GoalStatus        @default(IN_PROGRESS)
   goal_transactions GoalTransaction[]
   completedAt       DateTime?
@@ -206,19 +215,29 @@ model GoalTransaction {
 }
 
 model Subscription {
-  id        String   @id @default(uuid())
-  userID    String
-  user      User     @relation(fields: [userID], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String             @id @default(uuid())
+  amount     Float
+  currency   Currency           @default(INR)
+  userID     String
+  user       User               @relation(fields: [userID], references: [id])
+  planType   PlanType           @default(FREE)
+  status     SubscriptionStatus @default(ACTIVE)
+  payments   Payment[]
+  validFrom  DateTime           @default(now())
+  validUntil DateTime?          
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 }
 
 model Payment {
   id             String          @id @default(uuid())
   provider       PaymentProvider
   method         PaymentMethod
+  amount         Float
+  currency       Currency        @default(INR)
   txnDetails     Json
   subscriptionID String
+  subscription   Subscription    @relation(fields: [subscriptionID], references: [id])
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }

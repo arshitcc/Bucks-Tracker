@@ -26,7 +26,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -53,6 +55,7 @@ import {
   contributeToGoalSchema,
   NewGoalForm,
   newGoalSchema,
+  UpdateGoalForm,
   WithdrawFromGoalForm,
   withdrawFromGoalSchema,
 } from "@/schemas/goals";
@@ -60,11 +63,6 @@ import { useGoalStore } from "@/store/goals";
 import { useWalletStore } from "@/store/wallets";
 import { Goal } from "@/types";
 import GoalsCardSkeleton from "./_components/goals-skeleton";
-import {
-  contributeToGoal,
-  createGoal,
-  updateExistingGoal,
-} from "@/actions/goals";
 
 export default function GoalsPage() {
   const {
@@ -73,6 +71,8 @@ export default function GoalsPage() {
     fetchGoals,
     addGoal,
     updateGoal,
+    contributeToGoal,
+    withdrawFromGoal,
     deleteGoal,
   } = useGoalStore();
 
@@ -113,21 +113,11 @@ export default function GoalsPage() {
     },
   });
 
-  const onNewGoalSubmit = async (data: NewGoalForm) => {
+  const onNewGoalSubmit = async (data: NewGoalForm | UpdateGoalForm) => {
     if (editingGoal) {
-      await updateExistingGoal(editingGoal.id, data);
-      updateGoal(editingGoal.id, {
-        name: data.name,
-        deadline: format(data.deadline, "yyyy-MM-dd"),
-        targetAmount: Number(data.targetAmount),
-      });
+      await updateGoal(editingGoal.id, data);
     } else {
-      await createGoal(data);
-      addGoal({
-        name: data.name,
-        deadline: format(data.deadline, "yyyy-MM-dd"),
-        targetAmount: Number(data.targetAmount),
-      });
+      await addGoal(data);
     }
     setIsGoalDialogOpen(false);
     setEditingGoal(null);
@@ -137,21 +127,16 @@ export default function GoalsPage() {
   const onContributeSubmit = async (data: ContributeToGoalForm) => {
     const goal = goals.find((g) => g.id === data.goalID);
     if (goal) {
-      await contributeToGoal(data);
-      updateGoal(goal.id, {
-        currentSaved: goal.currentSaved + Number(data.amount),
-      });
+      await contributeToGoal(goal.id, data);
     }
     setIsContributeDialogOpen(false);
     contributeForm.reset();
   };
 
-  const onWithdrawSubmit = (data: WithdrawFromGoalForm) => {
+  const onWithdrawSubmit = async (data: WithdrawFromGoalForm) => {
     const goal = goals.find((g) => g.id === data.goalID);
     if (goal) {
-      updateGoal(goal.id, {
-        currentSaved: Math.max(0, goal.currentSaved - Number(data.amount)),
-      });
+      await withdrawFromGoal(goal.id, data);
     }
     setIsWithdrawDialogOpen(false);
     withdrawForm.reset();
@@ -175,7 +160,7 @@ export default function GoalsPage() {
     setIsGoalDialogOpen(true);
   };
 
-  const incompleteGoals = goals.filter((g) => !g.completed);
+  const incompleteGoals = goals.filter((g) => g.status !== "COMPLETED");
 
   if (goalsLoading) {
     return <GoalsCardSkeleton />;
@@ -243,7 +228,7 @@ export default function GoalsPage() {
                                 variant="outline"
                                 className={cn(
                                   "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
+                                  !field.value && "text-muted-foreground",
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -272,7 +257,7 @@ export default function GoalsPage() {
                     name="targetAmount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Target Amount ($)</FormLabel>
+                        <FormLabel>Target Amount (₹)</FormLabel>
                         <FormControl>
                           <Input type="number" placeholder="5000" {...field} />
                         </FormControl>
@@ -337,7 +322,7 @@ export default function GoalsPage() {
                           <SelectContent>
                             {incompleteGoals.map((goal) => (
                               <SelectItem key={goal.id} value={goal.id}>
-                                {goal.name} (${goal.currentSaved} / $
+                                {goal.name} (₹{goal.savedAmount} / ₹
                                 {goal.targetAmount})
                               </SelectItem>
                             ))}
@@ -352,7 +337,7 @@ export default function GoalsPage() {
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Amount ($)</FormLabel>
+                        <FormLabel>Amount (₹)</FormLabel>
                         <FormControl>
                           <Input type="number" placeholder="100" {...field} />
                         </FormControl>
@@ -376,11 +361,22 @@ export default function GoalsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {wallets.map((wallet) => (
-                              <SelectItem key={wallet.id} value={wallet.id}>
-                                {wallet.name} (${wallet.balance})
-                              </SelectItem>
-                            ))}
+                            <SelectGroup>
+                              <SelectLabel>Default Wallets</SelectLabel>
+                              {wallets.DEFAULT.map((wallet) => (
+                                <SelectItem key={wallet.id} value={wallet.id}>
+                                  {wallet.name} (₹{wallet.balance})
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                            <SelectGroup>
+                              <SelectLabel>Custom Wallets</SelectLabel>
+                              {wallets.CUSTOM.map((wallet) => (
+                                <SelectItem key={wallet.id} value={wallet.id}>
+                                  {wallet.name} (₹{wallet.balance})
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -442,7 +438,7 @@ export default function GoalsPage() {
                           <SelectContent>
                             {goals.map((goal) => (
                               <SelectItem key={goal.id} value={goal.id}>
-                                {goal.name} (${goal.currentSaved} / $
+                                {goal.name} (₹{goal.savedAmount} / ₹
                                 {goal.targetAmount})
                               </SelectItem>
                             ))}
@@ -457,7 +453,7 @@ export default function GoalsPage() {
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Amount ($)</FormLabel>
+                        <FormLabel>Amount (₹)</FormLabel>
                         <FormControl>
                           <Input type="number" placeholder="100" {...field} />
                         </FormControl>
@@ -481,11 +477,22 @@ export default function GoalsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {wallets.map((wallet) => (
-                              <SelectItem key={wallet.id} value={wallet.id}>
-                                {wallet.name} (${wallet.balance})
-                              </SelectItem>
-                            ))}
+                            <SelectGroup>
+                              <SelectLabel>Default Wallets</SelectLabel>
+                              {wallets.DEFAULT.map((wallet) => (
+                                <SelectItem key={wallet.id} value={wallet.id}>
+                                  {wallet.name} (₹{wallet.balance})
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                            <SelectGroup>
+                              <SelectLabel>Custom Wallets</SelectLabel>
+                              {wallets.CUSTOM.map((wallet) => (
+                                <SelectItem key={wallet.id} value={wallet.id}>
+                                  {wallet.name} (₹{wallet.balance})
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -511,21 +518,21 @@ export default function GoalsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {goals.map((goal) => {
-          const percentage = (goal.currentSaved / goal.targetAmount) * 100;
+          const percentage = (goal.savedAmount / goal.targetAmount) * 100;
           const isCompleted = percentage >= 100;
           return (
             <Card
               key={goal.id}
               className={cn(
-                "relative group overflow-hidden transition-all duration-300",
+                "group relative overflow-hidden transition-all duration-300",
                 isCompleted &&
-                  "bg-green-500/10 border-green-500/50 shadow-lg shadow-green-500/10"
+                  "border-green-500/50 bg-green-500/10 shadow-lg shadow-green-500/10",
               )}
             >
               {isCompleted && (
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-linear-to-r from-transparent via-white/10 to-transparent" />
               )}
-              <div className="absolute top-4 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute top-4 right-4 z-10 flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -543,26 +550,26 @@ export default function GoalsPage() {
                 </Button>
               </div>
               <CardHeader>
-                <CardTitle className="text-lg pr-8">{goal.name}</CardTitle>
+                <CardTitle className="pr-8 text-lg">{goal.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Current</span>
-                    <span className="font-semibold text-primary">
-                      ${goal.currentSaved.toFixed(2)}
+                    <span className="text-primary font-semibold">
+                      {`₹${goal.savedAmount.toFixed(2)}`}
                     </span>
                   </div>
                   <Progress value={Math.min(percentage, 100)} />
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Target</span>
                     <span className="font-medium">
-                      ${goal.targetAmount.toFixed(2)}
+                      {`₹${goal.targetAmount.toFixed(2)}`}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-1 pt-2">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Deadline: {new Date(goal.deadline).toLocaleDateString()}
                   </p>
                   <p
@@ -572,8 +579,8 @@ export default function GoalsPage() {
                   >
                     {isCompleted
                       ? "Goal completed!"
-                      : `$${(goal.targetAmount - goal.currentSaved).toFixed(
-                          2
+                      : `₹${(goal.targetAmount - goal.savedAmount).toFixed(
+                          2,
                         )} remaining`}
                   </p>
                 </div>

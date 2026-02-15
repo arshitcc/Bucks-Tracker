@@ -1,9 +1,36 @@
 import z from "zod/v4";
 
+export const expenseCategoryEnum = z.enum([
+  "Bar",
+  "Cafe",
+  "Groceries",
+  "Restaurant",
+  "Fast_Food",
+  "Clothes",
+  "Shoes",
+  "Electronics",
+  "Gifts",
+  "Stationary",
+  "Tools",
+  "Books",
+  "Rent",
+  "Energy",
+  "Utilities",
+  "Maintainance",
+  "Business_Trips",
+  "Public_Transport",
+  "Taxi",
+  "Fuel",
+  "Leasing",
+  "Rental",
+  "Vehicle_Insurance",
+  "Vehicle_Maintenance",
+]);
+
+export type ExpenseCategory = z.infer<typeof expenseCategoryEnum>;
+
 const newBudgetSchema = z.object({
-  category: z
-    .string({ error: "Category is required" })
-    .min(1, { error: "Enter a category" }),
+  category: expenseCategoryEnum,
   limit: z
     .string({ error: "Limit is required" })
     .min(1, { error: "Enter a valid budget limit" })

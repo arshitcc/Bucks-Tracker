@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v4";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Dialog,
   DialogContent,
@@ -37,8 +37,9 @@ import { Progress } from "@/components/ui/progress";
 import { PlusIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useBudgetStore } from "@/store/budgets";
 import BudgetsCardSkeleton from "./_components/budgets-skeleton";
-import { Budget } from "@/types";
+import { Budget, ExpenseCategory } from "@/types";
 import { BudgetFormValues, newBudgetSchema } from "@/schemas/budgets";
+import BudgetCard from "./_components/budget-card";
 
 const categories = [
   {
@@ -66,6 +67,7 @@ export default function BudgetsPage() {
     updateBudget,
     deleteBudget,
   } = useBudgetStore();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
@@ -76,7 +78,7 @@ export default function BudgetsPage() {
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(newBudgetSchema),
     defaultValues: {
-      category: "",
+      category: "Bar",
       limit: "",
     },
   });
@@ -186,7 +188,7 @@ export default function BudgetsPage() {
                   name="limit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget Limit ($)</FormLabel>
+                      <FormLabel>Budget Limit (₹)</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="500" {...field} />
                       </FormControl>
@@ -217,72 +219,21 @@ export default function BudgetsPage() {
           const percentage = (budget.spent / budget.limit) * 100;
           const isOverBudget = percentage > 100;
           return (
-            <Card key={budget.id} className="relative group">
-              <div className="absolute top-4 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => handleEdit(budget)}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(budget)}
-                >
-                  <Trash2Icon className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <CardHeader>
-                <CardTitle className="text-lg">{budget.category}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Spent</span>
-                    <span
-                      className={
-                        isOverBudget
-                          ? "text-destructive font-semibold"
-                          : "font-medium"
-                      }
-                    >
-                      ${budget.spent.toFixed(2)}
-                    </span>
-                  </div>
-                  <Progress
-                    value={Math.min(percentage, 100)}
-                    className={isOverBudget ? "bg-destructive/20" : ""}
-                  />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Budget</span>
-                    <span className="font-medium">
-                      ${budget.limit.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-2 text-center">
-                  <p
-                    className={`text-sm font-medium ${
-                      isOverBudget
-                        ? "text-destructive"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {isOverBudget
-                      ? `$${(budget.spent - budget.limit).toFixed(
-                          2
-                        )} over budget`
-                      : `$${(budget.limit - budget.spent).toFixed(
-                          2
-                        )} remaining`}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <motion.div
+              key={budget.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4 }}
+              transition={{ ease: "easeInOut" }}
+            >
+              <BudgetCard
+                budget={budget}
+                percentage={percentage}
+                isOverBudget={isOverBudget}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+              />
+            </motion.div>
           );
         })}
       </div>

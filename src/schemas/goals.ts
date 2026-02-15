@@ -13,12 +13,18 @@ const newGoalSchema = z.object({
       (v) => {
         return !isNaN(Number(v)) && Number(v) > 0;
       },
-      { error: "Target must be a positive number" }
+      { error: "Target must be a positive number" },
     ),
 
   deadline: z
     .date({ error: "Deadline is required" })
     .min(new Date(), { error: "Deadline must be in the future" }),
+});
+
+const updateGoalSchema = newGoalSchema.extend({
+  goalID: z
+    .string({ error: "Goal id is required" })
+    .min(12, { error: "Select a valid goal" }),
 });
 
 const contributeToGoalSchema = z.object({
@@ -29,7 +35,7 @@ const contributeToGoalSchema = z.object({
       (v) => {
         return !isNaN(Number(v)) && Number(v) > 0;
       },
-      { error: "Contribution must be a positive amount" }
+      { error: "Contribution must be a positive amount" },
     ),
 
   walletID: z
@@ -51,7 +57,7 @@ const withdrawFromGoalSchema = z.object({
       (v) => {
         return !isNaN(Number(v)) && Number(v) > 0;
       },
-      { error: "Withdrawal must be a positive amount" }
+      { error: "Withdrawal must be a positive amount" },
     ),
 
   goalID: z
@@ -66,6 +72,7 @@ const withdrawFromGoalSchema = z.object({
 });
 
 export type NewGoalForm = z.infer<typeof newGoalSchema>;
+export type UpdateGoalForm = z.infer<typeof updateGoalSchema>;
 export type ContributeToGoalForm = z.infer<typeof contributeToGoalSchema>;
 export type WithdrawFromGoalForm = z.infer<typeof withdrawFromGoalSchema>;
 

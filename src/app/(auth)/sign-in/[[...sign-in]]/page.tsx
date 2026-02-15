@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon, WalletIcon } from "lucide-react";
 import { GoogleIcon } from "@/components/icons/socials";
+import { getUserSubscription } from "@/actions/subscription";
 
 function SigninPage() {
   const { isLoaded, signIn, setActive } = useSignIn();

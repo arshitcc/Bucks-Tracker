@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { SignOutButton, useAuth, useUser } from "@clerk/nextjs";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import {
   LayoutDashboardIcon,
   LogOutIcon,
@@ -19,17 +19,18 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useUserStore } from "@/store/auth";
 
 export default function DashboardPage() {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, user: clerkProfile } = useUser();
+  const { fetchProfile } = useUserStore();
   const router = useRouter();
 
   if (!isLoaded) {
     return null;
   }
 
-  if (!user?.hasVerifiedEmailAddress) {
+  if (!clerkProfile?.hasVerifiedEmailAddress) {
     toast.error("Please verify your email address before logging in.", {
       position: "top-right",
     });
@@ -38,12 +39,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="bg-background min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-8">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">
-              Welcome back, {user?.firstName ?? "User"}!
+              Welcome back {clerkProfile?.firstName ?? null}!
             </h1>
             <p className="text-muted-foreground">
               Here's what's happening with your finances.
@@ -57,7 +58,7 @@ export default function DashboardPage() {
           </SignOutButton>
         </header>
 
-        <div className="grid gap-3 items-center grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 items-center gap-3 xl:grid-cols-4">
           <DashboardCard
             title="Total Balance"
             value="$12,450.00"
@@ -92,7 +93,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex h-75 items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
+            <div className="text-muted-foreground flex h-75 items-center justify-center rounded-lg border-2 border-dashed">
               No Transactions Found
             </div>
           </CardContent>
@@ -122,12 +123,16 @@ function DashboardCard({
     >
       <Card className="h-40 justify-between">
         <CardHeader className="flex flex-row items-center justify-between px-3">
-          <CardTitle className="text-xs md:text-sm font-medium">{title}</CardTitle>
-          <div className="hidden sm:flex text-muted-foreground">{icon}</div>
+          <CardTitle className="text-xs font-medium md:text-sm">
+            {title}
+          </CardTitle>
+          <div className="text-muted-foreground hidden sm:flex">{icon}</div>
         </CardHeader>
         <CardContent className="px-3">
-          <div className="text-lg md:text-2xl font-bold">{value}</div>
-          <p className="text-xs text-muted-foreground mt-1 truncate">{description}</p>
+          <div className="text-lg font-bold md:text-2xl">{value}</div>
+          <p className="text-muted-foreground mt-1 truncate text-xs">
+            {description}
+          </p>
         </CardContent>
       </Card>
     </motion.div>

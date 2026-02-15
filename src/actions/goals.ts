@@ -30,11 +30,43 @@ export async function createGoal(data: NewGoalForm) {
     });
 
     revalidatePath("/dashboard/goals");
-    return { success: true, goal };
+    return { success: true, data: goal };
   } catch (error) {
     console.error("[v0] Error creating goal:", error);
     return { error: "Failed to create goal" };
   }
+}
+
+export async function getGoals() {
+  const { isAuthenticated, userId } = await auth();
+
+  if (!isAuthenticated || !userId) {
+    return {
+      success: false,
+      error: "Session expired. Please login again",
+      data: [],
+    };
+  }
+
+  const user = await db.user.findUnique({
+    where: { clerkUserID: userId },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      error: "Account not found",
+      data: [],
+    };
+  }
+
+  const goals = await db.goal.findMany();
+
+  return {
+    success: true,
+    error: null,
+    data: goals,
+  };
 }
 
 export async function contributeToGoal(data: ContributeToGoalForm) {
@@ -73,9 +105,9 @@ export async function contributeToGoal(data: ContributeToGoalForm) {
       const updatedGoal = await tx.goal.update({
         where: { id: data.goalID },
         data: {
-          currentAmount: { increment: txnAmount },
+          savedAmount: { increment: txnAmount },
           status:
-            goal.currentAmount + txnAmount >= goal.targetAmount
+            goal.savedAmount + txnAmount >= goal.targetAmount
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,
         },
@@ -116,7 +148,7 @@ export async function withdrawFromGoal(data: {
       const goal = await tx.goal.findUnique({
         where: { id: data.goalID, userID: user.id },
       });
-      if (!goal || goal.currentAmount < data.amount)
+      if (!goal || goal.savedAmount < data.amount)
         throw new Error("Insufficient funds in goal");
 
       const goalTransaction = await tx.goalTransaction.create({
@@ -131,9 +163,9 @@ export async function withdrawFromGoal(data: {
       const updatedGoal = await tx.goal.update({
         where: { id: data.goalID },
         data: {
-          currentAmount: { decrement: data.amount },
+          savedAmount: { decrement: data.amount },
           status:
-            goal.currentAmount - data.amount >= goal.targetAmount
+            goal.savedAmount - data.amount >= goal.targetAmount
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,
         },
@@ -164,21 +196,18 @@ export async function updateExistingGoal(id: string, data: NewGoalForm) {
     const user = await db.user.findUnique({
       where: { clerkUserID: clerkUserId },
     });
-    if (!user) return { error: "Account not found" };
+    if (!user) return { success: false, error: "Account not found" };
 
     const goal = await db.goal.findUnique({ where: { id, userID: user.id } });
-    if (!goal) return { error: "Goal not found" };
+    if (!goal) return { success: false, error: "Goal not found" };
 
     const result = await db.$transaction(async (tx) => {
       let excessTransfer = null;
 
       const targetAmount = Number(data.targetAmount) || 0;
 
-      if (
-        data.targetAmount !== undefined &&
-        targetAmount < goal.currentAmount
-      ) {
-        const excessAmount = goal.currentAmount - targetAmount;
+      if (data.targetAmount !== undefined && targetAmount < goal.savedAmount) {
+        const excessAmount = goal.savedAmount - targetAmount;
 
         const defaultWallet = await tx.wallet.findFirst({
           where: { userID: user.id, type: WalletType.DEFAULT },
@@ -209,15 +238,15 @@ export async function updateExistingGoal(id: string, data: NewGoalForm) {
         data: {
           ...data,
           targetAmount: targetAmount,
-          currentAmount:
-            targetAmount !== undefined && targetAmount < goal.currentAmount
+          savedAmount:
+            targetAmount !== undefined && targetAmount < goal.savedAmount
               ? targetAmount
               : undefined,
           status:
             (targetAmount ?? goal.targetAmount) <=
-            (targetAmount !== undefined && targetAmount < goal.currentAmount
+            (targetAmount !== undefined && targetAmount < goal.savedAmount
               ? targetAmount
-              : goal.currentAmount)
+              : goal.savedAmount)
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,
         },
@@ -228,7 +257,7 @@ export async function updateExistingGoal(id: string, data: NewGoalForm) {
 
     revalidatePath("/dashboard/goals");
     revalidatePath("/dashboard/wallets");
-    return { success: true, ...result };
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("[v0] Error updating goal:", error);
     return { error: error.message || "Failed to update goal" };

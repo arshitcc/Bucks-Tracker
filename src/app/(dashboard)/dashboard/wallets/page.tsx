@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence, stagger } from "motion/react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,8 +25,8 @@ export default function WalletsPage() {
     fetchWallets();
   }, [fetchWallets]);
 
-  const defaultWallets = wallets.filter((w) => w.isDefault);
-  const customWallets = wallets.filter((w) => !w.isDefault);
+  const defaultWallets = wallets?.DEFAULT ?? [];
+  const customWallets = wallets?.CUSTOM ?? [];
 
   return (
     <div className="space-y-6">
@@ -56,25 +56,32 @@ export default function WalletsPage() {
                       // layout
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ y: -8 }}
                       transition={{ ease: "easeInOut" }}
                     >
-                      <Card className="overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/5 to-transparent shadow-md transition-shadow hover:shadow-lg">
+                      <Card
+                        className={cn(
+                          "border-primary/20 from-primary/5 cursor-pointer overflow-hidden border-2 bg-linear-to-br to-transparent shadow-md transition-shadow hover:shadow-lg",
+                        )}
+                      >
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                           <CardTitle className="text-lg font-medium">
                             {wallet.name}
                           </CardTitle>
-                          <div className="flex gap-x-3">
+                          <div className="flex items-center gap-x-3">
                             {wallet.balance < 1000 && (
-                              <Badge variant={"destructive"}>Low</Badge>
+                              <Badge variant={"default"} className="bg-red-800">
+                                Low
+                              </Badge>
                             )}
-                            <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                            <WalletIcon className="text-muted-foreground h-4 w-4" />
                           </div>
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">
                             ${wallet.balance.toLocaleString()}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-muted-foreground mt-1 text-xs">
                             Default Wallet
                           </p>
                         </CardContent>
@@ -100,12 +107,14 @@ export default function WalletsPage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     className="group relative"
                   >
                     <Card
                       className={cn(
-                        "overflow-hidden border-2 border-primary/40 bg-card shadow-xl",
-                        wallet.balance < 1000 && "border-red-800 bg-red-800 text-black"
+                        "border-primary/40 bg-card overflow-hidden border-2 shadow-xl",
+                        wallet.balance < 1000 &&
+                          "border-red-800 bg-red-800 text-black",
                       )}
                     >
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -119,19 +128,19 @@ export default function WalletsPage() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => deleteWallet(wallet.id)}
+                            className="text-destructive h-8 w-8"
+                            onClick={() => deleteWallet(wallet.type, wallet.id)}
                           >
                             <Trash2Icon className="h-4 w-4" />
                           </Button>
-                          <WalletIcon className="h-4 w-4 text-muted-foreground" />
+                          <WalletIcon className="text-muted-foreground h-4 w-4" />
                         </div>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
                           ${wallet.balance.toLocaleString()}
                         </div>
-                        <p className="text-xs text-primary font-medium mt-1">
+                        <p className="text-primary mt-1 text-xs font-medium">
                           Premium Wallet
                         </p>
                       </CardContent>
@@ -140,11 +149,11 @@ export default function WalletsPage() {
                 ))
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <ArrowUpRightIcon className="h-8 w-8 text-primary" />
+                  <div className="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                    <ArrowUpRightIcon className="text-primary h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-bold">Unlock Custom Wallets</h3>
-                  <p className="mt-2 max-w-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 max-w-sm">
                     Create up to 20 custom wallets with unique themes and shine
                     effects by upgrading to Pro.
                   </p>
@@ -171,7 +180,7 @@ function WalletSkeleton() {
         <Skeleton className="h-4 w-24" />
       </CardHeader>
       <CardContent>
-        <Skeleton className="h-8 w-32 mb-2" />
+        <Skeleton className="mb-2 h-8 w-32" />
         <Skeleton className="h-3 w-20" />
       </CardContent>
     </Card>

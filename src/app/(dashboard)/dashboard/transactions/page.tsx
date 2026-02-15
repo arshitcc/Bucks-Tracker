@@ -107,9 +107,9 @@ export default function TransactionsPage() {
                 >
                   {t.type === "Income" ? "+" : "-"}${t.amount.toFixed(2)}
                 </TableCell>
-                <TableCell>{t.walletName}</TableCell>
+                <TableCell>{"t.walletName"}</TableCell>
                 <TableCell className="font-mono">
-                  ${t.currentBalance.toFixed(2)}
+                  ${t.amount.toFixed(2)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {t.dateTime}

@@ -3,7 +3,10 @@
 import { db } from "@/lib/prisma";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { createDefaultWallets } from "./wallets";
+import { createDefaultWallets, getAllWallets } from "./wallets";
+import { createFreeSubscription, getUserSubscription } from "./subscription";
+import { Subscription, User, Wallet } from "@/generated/prisma/client";
+import { success } from "zod";
 
 export async function updateUserPassword(newPassword: string) {
   try {
@@ -58,7 +61,6 @@ export async function createNewUserAccount(clerkUserID: string) {
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(clerkUserID);
-    console.log(user);
 
     if (!user || !user.id) {
       return {
@@ -68,7 +70,7 @@ export async function createNewUserAccount(clerkUserID: string) {
     }
 
     const email = user.emailAddresses.find(
-      (e) => e.id === user.primaryEmailAddressId
+      (e) => e.id === user.primaryEmailAddressId,
     )?.emailAddress;
 
     const newUser = await db.user.create({
@@ -79,15 +81,29 @@ export async function createNewUserAccount(clerkUserID: string) {
       },
     });
 
-    const res = await createDefaultWallets(newUser.id);
+    const userID = newUser.id;
 
-    let wallets = [];
-    if (res.success) {
-      wallets = res.wallets;
+    const [walletsResponse, subscriptionResponse] = await Promise.all([
+      createDefaultWallets(userID),
+      createFreeSubscription(userID),
+    ]);
+
+    let data = {
+      wallets: [],
+      subscription: null as Subscription | null,
+    };
+
+    if (walletsResponse.success) {
+      data.wallets = walletsResponse.data;
     }
+
+    if (subscriptionResponse?.success) {
+      data.subscription = subscriptionResponse.data;
+    }
+
     return {
       success: true,
-      user: { ...newUser, wallets },
+      data: { ...newUser, ...data },
     };
   } catch (err: any) {
     const clerkError = err.errors?.[0];
@@ -176,6 +192,96 @@ export async function deleteUserAccount() {
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to delete account",
+    };
+  }
+}
+
+export async function getUserAccount() {
+  try {
+    const { isAuthenticated, userId } = await auth();
+
+    if (!isAuthenticated) {
+      return { error: "Unauthorized. Please login" };
+    }
+
+    const user = await db.user.findUnique({
+      where: { clerkUserID: userId },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Account not found",
+      };
+    }
+
+    const userID = user.id;
+
+    const today = new Date();
+
+    const [walletsResponse, subscriptionResponse] = await Promise.all([
+      getAllWallets(),
+      getUserSubscription(),
+    ]);
+
+    let data = {
+      wallets: {
+        DEFAULT: [] as Wallet[],
+        CUSTOM: [] as Wallet[],
+      },
+      subscription: null as Subscription | null | undefined,
+    };
+
+    if (walletsResponse.success) {
+      data.wallets = walletsResponse.data!;
+    }
+
+    if (subscriptionResponse?.success) {
+      data.subscription = subscriptionResponse?.data;
+    }
+
+    return {
+      success: true,
+      data: {
+        ...user,
+        ...data,
+      },
+    };
+  } catch (error) {}
+}
+
+export async function createNewAccount(data: {
+  clerkUserID: string;
+  email: string;
+  name: string;
+}) {
+  try {
+    const existingAccount = await db.user.findFirst({
+      where: {
+        email: data.email,
+      },
+    });
+
+    if (existingAccount) {
+      return {
+        success: true,
+        error: "Account already exists",
+        data: existingAccount,
+      };
+    }
+
+    const newUser = await db.user.create({ data });
+
+    return {
+      success: true,
+      data: newUser,
+    }
+  } catch (error) {
+    console.error("Error creating account:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to create account",
     };
   }
 }

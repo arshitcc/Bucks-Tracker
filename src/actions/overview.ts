@@ -315,6 +315,8 @@ export async function getCategorySpends() {
       }
     );
 
+    categorySpends.sort((a, b) => b.amount - a.amount);
+
     return {
       success: true,
       data: categorySpends,

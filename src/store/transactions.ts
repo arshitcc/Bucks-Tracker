@@ -12,7 +12,7 @@ interface TransactionStore extends BaseState {
   transactions: Transaction[];
   fetchTransactions: () => Promise<void>;
   addTransaction: (
-    t: Omit<Transaction, "id" | "currentBalance" | "dateTime">
+    t: Omit<Transaction, "id" | "currentBalance" | "dateTime">,
   ) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
 }
@@ -30,32 +30,44 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     const sampleTransactions: Transaction[] = [
       {
         id: "1",
-        type: "Expense",
+        type: "EXPENSE",
         category: "Groceries",
         amount: 50.25,
-        walletName: "Main Wallet",
-        currentBalance: 12450.0,
-        dateTime: "2023-12-28 10:30",
+        walletID: "1",
+        createdAt: new Date(2023, 11, 27, 15, 45),
+        userID: "1",
+        group: "EDUCATION",
+        receipts: [],
+        isRecurring: false,
+        updatedAt: new Date(2023, 11, 27, 15, 45),
         description: "Weekly grocery shopping at Whole Foods.",
       },
       {
         id: "2",
-        type: "Income",
+        type: "INCOME",
         category: "Business_Trips",
         amount: 1200.0,
-        walletName: "Main Wallet",
-        currentBalance: 13650.0,
-        dateTime: "2023-12-27 15:45",
+        walletID: "2",
+        createdAt: new Date(2023, 11, 27, 15, 45),
+        userID: "1",
+        group: "INVESTMENTS",
+        receipts: [],
+        isRecurring: true,
+        updatedAt: new Date(2023, 11, 27, 15, 45),
         description: "Bonus payment for Q4.",
       },
       {
         id: "3",
-        type: "Expense",
+        type: "EXPENSE",
         category: "Rent",
         amount: 1500.0,
-        walletName: "Main Wallet",
-        currentBalance: 12150.0,
-        dateTime: "2023-12-01 09:00",
+        walletID: "2",
+        createdAt: new Date(2023, 12, 1, 9, 0),
+        userID: "1",
+        group: "INVESTMENTS",
+        receipts: [],
+        isRecurring: true,
+        updatedAt: new Date(2023, 12, 1, 9, 0),
         description: "Monthly apartment rent.",
       },
     ];
@@ -68,8 +80,6 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     const newTransaction: Transaction = {
       ...t,
       id: Math.random().toString(36).substr(2, 9),
-      currentBalance: 0, // Simplified for mock
-      dateTime: new Date().toISOString(),
     };
     set((state) => ({
       transactions: [newTransaction, ...state.transactions],
