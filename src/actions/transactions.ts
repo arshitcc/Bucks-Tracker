@@ -111,14 +111,14 @@ export async function createTransaction(data: CreateTransactionData) {
     revalidatePath("/dashboard/overview");
     return { success: true, transaction };
   } catch (error) {
-    console.error("[v0] Error creating transaction:", error);
+    console.error("Error creating transaction:", error);
     return { error: "Failed to create transaction" };
   }
 }
 
 export async function updateTransaction(
   transactionId: string,
-  data: UpdateTransactionData
+  data: UpdateTransactionData,
 ) {
   try {
     const { userId } = await auth();
@@ -289,7 +289,7 @@ export async function deleteTransaction(transactionId: string) {
     revalidatePath("/dashboard/overview");
     return { success: true };
   } catch (error) {
-    console.error("[v0] Error deleting transaction:", error);
+    console.error("Error deleting transaction:", error);
     return { error: "Failed to delete transaction" };
   }
 }

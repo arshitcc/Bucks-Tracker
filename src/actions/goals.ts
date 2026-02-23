@@ -8,7 +8,11 @@ import {
   WalletType,
 } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
-import { ContributeToGoalForm, NewGoalForm } from "@/schemas/goals";
+import {
+  ContributeToGoalForm,
+  NewGoalForm,
+  WithdrawFromGoalForm,
+} from "@/schemas/goals";
 
 export async function createGoal(data: NewGoalForm) {
   try {
@@ -32,7 +36,7 @@ export async function createGoal(data: NewGoalForm) {
     revalidatePath("/dashboard/goals");
     return { success: true, data: goal };
   } catch (error) {
-    console.error("[v0] Error creating goal:", error);
+    console.error("Error creating goal:", error);
     return { error: "Failed to create goal" };
   }
 }
@@ -69,7 +73,7 @@ export async function getGoals() {
   };
 }
 
-export async function contributeToGoal(data: ContributeToGoalForm) {
+export async function contributeAmountToGoal(data: ContributeToGoalForm) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Unauthorized" };
@@ -77,7 +81,7 @@ export async function contributeToGoal(data: ContributeToGoalForm) {
     const user = await db.user.findUnique({
       where: { clerkUserID: clerkUserId },
     });
-    if (!user) return { error: "Account not found" };
+    if (!user) return { success: false, error: "Account not found" };
 
     const txnAmount = Number(data.amount) || 0;
 
@@ -85,13 +89,22 @@ export async function contributeToGoal(data: ContributeToGoalForm) {
       const wallet = await tx.wallet.findUnique({
         where: { id: data.walletID, userID: user.id },
       });
-      if (!wallet || wallet.balance < txnAmount)
-        throw new Error("Insufficient funds in wallet");
+      if (!wallet || wallet.balance < txnAmount) {
+        return {
+          success: false,
+          error: "Insufficient funds in wallet",
+        };
+      }
 
       const goal = await tx.goal.findUnique({
         where: { id: data.goalID, userID: user.id },
       });
-      if (!goal) throw new Error("Goal not found");
+      if (!goal) {
+        return {
+          success: false,
+          error: "Goal not found",
+        };
+      }
 
       const goalTransaction = await tx.goalTransaction.create({
         data: {
@@ -123,18 +136,14 @@ export async function contributeToGoal(data: ContributeToGoalForm) {
 
     revalidatePath("/dashboard/goals");
     revalidatePath("/dashboard/wallets");
-    return { success: true, ...result };
+    return { success: true, data: { ...result } };
   } catch (error: any) {
-    console.error("[v0] Error contributing to goal:", error);
+    console.error("Error contributing to goal:", error);
     return { error: error.message || "Failed to contribute to goal" };
   }
 }
 
-export async function withdrawFromGoal(data: {
-  goalID: string;
-  walletID: string;
-  amount: number;
-}) {
+export async function withdrawAmountFromGoal(data: WithdrawFromGoalForm) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Unauthorized" };
@@ -142,30 +151,36 @@ export async function withdrawFromGoal(data: {
     const user = await db.user.findUnique({
       where: { clerkUserID: clerkUserId },
     });
-    if (!user) return { error: "Account not found" };
+    if (!user) return { success: false, error: "Account not found" };
+
+    const txnAmount = Number(data.amount) || 0;
 
     const result = await db.$transaction(async (tx) => {
       const goal = await tx.goal.findUnique({
         where: { id: data.goalID, userID: user.id },
       });
-      if (!goal || goal.savedAmount < data.amount)
-        throw new Error("Insufficient funds in goal");
+      if (!goal || goal.savedAmount < txnAmount) {
+        return {
+          success: false,
+          error: "Insufficient funds in goal",
+        };
+      }
 
       const goalTransaction = await tx.goalTransaction.create({
         data: {
           goalID: data.goalID,
           walletID: data.walletID,
           type: GoalTransactionType.WITHDRAW,
-          amount: data.amount,
+          amount: txnAmount,
         },
       });
 
       const updatedGoal = await tx.goal.update({
         where: { id: data.goalID },
         data: {
-          savedAmount: { decrement: data.amount },
+          savedAmount: { decrement: txnAmount },
           status:
-            goal.savedAmount - data.amount >= goal.targetAmount
+            goal.savedAmount - txnAmount >= goal.targetAmount
               ? GoalStatus.COMPLETED
               : GoalStatus.IN_PROGRESS,
         },
@@ -173,7 +188,7 @@ export async function withdrawFromGoal(data: {
 
       await tx.wallet.update({
         where: { id: data.walletID },
-        data: { balance: { increment: data.amount } },
+        data: { balance: { increment: txnAmount } },
       });
 
       return { goalTransaction, updatedGoal };
@@ -181,9 +196,9 @@ export async function withdrawFromGoal(data: {
 
     revalidatePath("/dashboard/goals");
     revalidatePath("/dashboard/wallets");
-    return { success: true, ...result };
+    return { success: true, data: { ...result } };
   } catch (error: any) {
-    console.error("[v0] Error withdrawing from goal:", error);
+    console.error("Error withdrawing from goal:", error);
     return { error: error.message || "Failed to withdraw from goal" };
   }
 }
@@ -259,7 +274,58 @@ export async function updateExistingGoal(id: string, data: NewGoalForm) {
     revalidatePath("/dashboard/wallets");
     return { success: true, data: result };
   } catch (error: any) {
-    console.error("[v0] Error updating goal:", error);
+    console.error("Error updating goal:", error);
     return { error: error.message || "Failed to update goal" };
+  }
+}
+
+export async function deleteExistingGoal(id: string, walletID: string) {
+  try {
+    await db.$transaction(async (tx) => {
+      const goal = await tx.goal.findUnique({
+        where: { id },
+      });
+
+      if (!goal) {
+        return {
+          success: false,
+          error: "Goal not found",
+        };
+      }
+
+      const amountToReturn = goal.savedAmount;
+
+      await tx.wallet.update({
+        where: { id: walletID },
+        data: {
+          balance: {
+            increment: amountToReturn,
+          },
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          walletID,
+          userID: goal.userID,
+          type: "INCOME",
+          group: "INVESTMENTS",
+          category: "GOAL_REFUND",
+          amount: amountToReturn,
+          description: `Goal refund: ${goal.name}`,
+        },
+      });
+
+      await tx.goal.delete({
+        where: { id },
+      });
+    });
+
+    revalidatePath("/dashboard/goals");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting goal:", error);
+    return { success: false, error: "Failed to delete goal" };
   }
 }

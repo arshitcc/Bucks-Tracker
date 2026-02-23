@@ -67,7 +67,7 @@ export async function getUserSubscription() {
       },
     };
   } catch (error) {
-    console.error("[v0] Error fetching subscription:", error);
+    console.error("Error fetching subscription:", error);
     return { error: "Failed to fetch subscription" };
   }
 }
@@ -95,7 +95,7 @@ export async function createFreeSubscription(userID: string) {
         userID,
         amount: 0,
         validUntil: null,
-        planType: PlanType.FREE
+        planType: PlanType.FREE,
       },
     });
 
@@ -261,7 +261,7 @@ export async function verifyAndCompletePayment(
       },
     };
   } catch (error) {
-    console.error("[v0] Error verifying payment:", error);
+    console.error("Error verifying payment:", error);
     return { error: "Failed to verify payment" };
   }
 }
@@ -298,7 +298,7 @@ export async function handlePaymentFailure(orderId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("[v0] Error handling payment failure:", error);
+    console.error("Error handling payment failure:", error);
     return { error: "Failed to handle payment failure" };
   }
 }
@@ -366,7 +366,7 @@ export async function getUserStats() {
       },
     };
   } catch (error) {
-    console.error("[v0] Error fetching user stats:", error);
+    console.error("Error fetching user stats:", error);
     return { error: "Failed to fetch user stats" };
   }
 }

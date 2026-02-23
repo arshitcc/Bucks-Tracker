@@ -172,7 +172,7 @@ export async function updateWallet(walletId: string, data: { name: string }) {
     revalidatePath("/dashboard/wallets");
     return { success: true, wallet };
   } catch (error) {
-    console.error("[v0] Error updating wallet:", error);
+    console.error("Error updating wallet:", error);
     return { error: "Failed to update wallet" };
   }
 }
@@ -220,7 +220,7 @@ export async function deleteWallet(walletId: string) {
     revalidatePath("/dashboard/wallets");
     return { success: true };
   } catch (error) {
-    console.error("[v0] Error deleting wallet:", error);
+    console.error("Error deleting wallet:", error);
     return { error: "Failed to delete wallet" };
   }
 }

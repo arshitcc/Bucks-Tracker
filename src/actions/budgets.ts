@@ -31,14 +31,14 @@ export async function createBudget(data: {
     revalidatePath("/dashboard/budgets");
     return { success: true, budget };
   } catch (error) {
-    console.error("[v0] Error creating budget:", error);
+    console.error("Error creating budget:", error);
     return { error: "Failed to create budget" };
   }
 }
 
 export async function updateBudget(
   id: string,
-  data: { group?: ExpenseGroup; category?: ExpenseCategory; limit?: number }
+  data: { group?: ExpenseGroup; category?: ExpenseCategory; limit?: number },
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -57,7 +57,7 @@ export async function updateBudget(
     revalidatePath("/dashboard/budgets");
     return { success: true, budget };
   } catch (error) {
-    console.error("[v0] Error updating budget:", error);
+    console.error("Error updating budget:", error);
     return { error: "Failed to update budget" };
   }
 }
@@ -77,7 +77,7 @@ export async function deleteBudget(id: string) {
     revalidatePath("/dashboard/budgets");
     return { success: true };
   } catch (error) {
-    console.error("[v0] Error deleting budget:", error);
+    console.error("Error deleting budget:", error);
     return { error: "Failed to delete budget" };
   }
 }

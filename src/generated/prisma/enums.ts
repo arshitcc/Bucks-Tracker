@@ -121,7 +121,8 @@ export const ExpenseCategory = {
   Leasing: 'Leasing',
   Rental: 'Rental',
   Vehicle_Insurance: 'Vehicle_Insurance',
-  Vehicle_Maintenance: 'Vehicle_Maintenance'
+  Vehicle_Maintenance: 'Vehicle_Maintenance',
+  GOAL_REFUND: 'GOAL_REFUND'
 } as const
 
 export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory]

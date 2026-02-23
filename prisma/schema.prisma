@@ -106,6 +106,8 @@ enum ExpenseCategory {
   Rental
   Vehicle_Insurance
   Vehicle_Maintenance
+
+  GOAL_REFUND
 }
 
 enum GoalStatus {

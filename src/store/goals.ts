@@ -2,11 +2,12 @@ import { type Goal } from "@/types";
 import { create } from "zustand";
 import { BaseState } from "./transactions";
 import {
-  contributeToGoal,
+  contributeAmountToGoal,
   createGoal,
+  deleteExistingGoal,
   getGoals,
   updateExistingGoal,
-  withdrawFromGoal,
+  withdrawAmountFromGoal,
 } from "@/actions/goals";
 import {
   ContributeToGoalForm,
@@ -21,7 +22,7 @@ interface GoalStore extends BaseState {
   updateGoal: (id: string, g: NewGoalForm) => Promise<void>;
   contributeToGoal: (id: string, g: ContributeToGoalForm) => Promise<void>;
   withdrawFromGoal: (id: string, g: WithdrawFromGoalForm) => Promise<void>;
-  deleteGoal: (id: string) => Promise<void>;
+  deleteGoal: (id: string, walletID: string) => Promise<void>;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -80,31 +81,77 @@ export const useGoalStore = create<GoalStore>((set) => ({
     }
   },
   contributeToGoal: async (id, g) => {
-    set({ isUpdating: true });
+    set({ isUpdating: true, id });
     await new Promise((resolve) => setTimeout(resolve, 500));
-    set((state) => ({
-      goals: state.goals.map((item) =>
-        item.id === id ? { ...item, ...g } : item,
-      ),
-      isUpdating: false,
-    }));
+    try {
+      const res = await contributeAmountToGoal(g);
+
+      if (res.success) {
+        set((state) => ({
+          goals: state.goals.map((gl) =>
+            gl.id === id ? { ...gl, ...res.data?.updatedGoal } : gl,
+          ),
+        }));
+      } else {
+        set((state) => ({
+          error: res.error || "Something went wrong",
+        }));
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      set({
+        isUpdating: false,
+        id: null,
+      });
+    }
   },
   withdrawFromGoal: async (id, g) => {
-    set({ isUpdating: true });
+    set({ isUpdating: true, id });
     await new Promise((resolve) => setTimeout(resolve, 500));
-    set((state) => ({
-      goals: state.goals.map((item) =>
-        item.id === id ? { ...item, ...g } : item,
-      ),
-      isUpdating: false,
-    }));
+    try {
+      const res = await withdrawAmountFromGoal(g);
+      if (res.success) {
+        set((state) => ({
+          goals: state.goals.map((gl) =>
+            gl.id === id ? { ...gl, ...res.data?.updatedGoal } : gl,
+          ),
+        }));
+      } else {
+        set({
+          error: res.error || "Something went wrong",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      set({
+        isUpdating: false,
+        id: null,
+      });
+    }
   },
-  deleteGoal: async (id) => {
-    set({ isUpdating: true });
+  deleteGoal: async (id, walletID) => {
+    set({ isUpdating: true, id });
     await new Promise((resolve) => setTimeout(resolve, 500));
-    set((state) => ({
-      goals: state.goals.filter((goal) => goal.id !== id),
-      isUpdating: false,
-    }));
+    try {
+      const res = await deleteExistingGoal(id, walletID);
+      if (res.success) {
+        set((state) => ({
+          goals: state.goals.filter((goal) => goal.id !== id),
+        }));
+      } else {
+        set({
+          error: res.error || "Something went wrong",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      set({
+        isUpdating: false,
+        id: null,
+      });
+    }
   },
 }));

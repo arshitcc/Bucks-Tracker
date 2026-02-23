@@ -48,6 +48,7 @@ import {
   CalendarIcon,
   Trash2Icon,
   PencilIcon,
+  ArrowUpRightIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -150,8 +151,8 @@ export default function GoalsPage() {
     setIsGoalDialogOpen(true);
   };
 
-  const handleDelete = (goal: Goal) => {
-    deleteGoal(goal.id);
+  const handleDelete = async (goalID: string, walletID: string) => {
+    await deleteGoal(goalID, walletID);
   };
 
   const handleNewGoal = () => {
@@ -517,77 +518,103 @@ export default function GoalsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {goals.map((goal) => {
-          const percentage = (goal.savedAmount / goal.targetAmount) * 100;
-          const isCompleted = percentage >= 100;
-          return (
-            <Card
-              key={goal.id}
-              className={cn(
-                "group relative overflow-hidden transition-all duration-300",
-                isCompleted &&
-                  "border-green-500/50 bg-green-500/10 shadow-lg shadow-green-500/10",
-              )}
-            >
-              {isCompleted && (
-                <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-linear-to-r from-transparent via-white/10 to-transparent" />
-              )}
-              <div className="absolute top-4 right-4 z-10 flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => handleEdit(goal)}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(goal)}
-                >
-                  <Trash2Icon className="h-4 w-4" />
-                </Button>
-              </div>
-              <CardHeader>
-                <CardTitle className="pr-8 text-lg">{goal.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Current</span>
-                    <span className="text-primary font-semibold">
-                      {`₹${goal.savedAmount.toFixed(2)}`}
-                    </span>
-                  </div>
-                  <Progress value={Math.min(percentage, 100)} />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Target</span>
-                    <span className="font-medium">
-                      {`₹${goal.targetAmount.toFixed(2)}`}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-1 pt-2">
-                  <p className="text-muted-foreground text-xs">
-                    Deadline: {new Date(goal.deadline).toLocaleDateString()}
-                  </p>
-                  <p
-                    className={`text-sm font-medium ${
-                      isCompleted ? "text-green-600" : "text-muted-foreground"
-                    }`}
+        {goals?.length > 0 ? (
+          goals.map((goal) => {
+            const percentage = (goal.savedAmount / goal.targetAmount) * 100;
+            const isCompleted = percentage >= 100;
+            return (
+              <Card
+                key={goal.id}
+                className={cn(
+                  "group relative overflow-hidden transition-all duration-300",
+                  isCompleted &&
+                    "border-green-500/50 bg-green-500/10 shadow-lg shadow-green-500/10",
+                )}
+              >
+                {isCompleted && (
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                )}
+                <div className="absolute top-4 right-4 z-10 flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => handleEdit(goal)}
                   >
-                    {isCompleted
-                      ? "Goal completed!"
-                      : `₹${(goal.targetAmount - goal.savedAmount).toFixed(
-                          2,
-                        )} remaining`}
-                  </p>
+                    <PencilIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    // onClick={() => handleDelete(goal)}
+                  >
+                    <Trash2Icon className="h-4 w-4" />
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                <CardHeader>
+                  <CardTitle className="pr-8 text-lg">{goal.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Current</span>
+                      <span className="text-primary font-semibold">
+                        {`₹${goal.savedAmount.toFixed(2)}`}
+                      </span>
+                    </div>
+                    <Progress value={Math.min(percentage, 100)} />
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Target</span>
+                      <span className="font-medium">
+                        {`₹${goal.targetAmount.toFixed(2)}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1 pt-2">
+                    <p className="text-muted-foreground text-xs">
+                      Deadline: {new Date(goal.deadline).toLocaleDateString()}
+                    </p>
+                    <p
+                      className={`text-sm font-medium ${
+                        isCompleted ? "text-green-600" : "text-muted-foreground"
+                      }`}
+                    >
+                      {isCompleted
+                        ? "Goal completed!"
+                        : `₹${(goal.targetAmount - goal.savedAmount).toFixed(
+                            2,
+                          )} remaining`}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <div className="col-span-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 text-center">
+            <div className="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+              <ArrowUpRightIcon className="text-primary h-8 w-8" />
+            </div>
+
+            <h3 className="text-xl font-bold">
+              Level Up Your Money Management
+            </h3>
+
+            <p className="text-muted-foreground mt-2 max-w-sm">
+              Unlock up to 20 custom wallets, premium themes, and advanced
+              tracking features to organize your finances like a pro.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setIsGoalDialogOpen(true)}
+              >
+                Create New Goal
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
